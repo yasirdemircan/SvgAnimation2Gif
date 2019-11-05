@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title></title>
+    <script src="vivus.js"></script>
+    <script src="imagetracer_v1.2.5.js"></script>
+    <script src="gifjs/gif.js"></script>
+    <script src="html2canvas.min.js"></script>
+</head>
+
+<body>
+    <img crossorigin="anonymous" onclick="Trc()" id="srcimg">
+    <fieldset>
+        <legend>Options:</legend>
+        Source Image:<input type="file" id="fileinput">
+        Draw Type: <select id="typeselect">
+            <option value="delayed">Delayed</option>
+            <option value="sync">Sync</option>
+            <option value="oneByOne">OneByOne</option>
+        </select>
+        Draw Duration: <input id="duration" value="200" type="number">
+        <button disabled="true" id="scanbutton" onclick="Trc()">Scan Svg</button>
+        <button disabled="true" id="renderbutton" onclick="start()">Start Anim&Render2Gif</button>
+    </fieldset>
+    <script>
+        var captint;
+        var options = {
+            ltres: 10,
+            qtres: 10,
+            pathomit: 5,
+            strokewidth: 0.5,
+            rightangleenhance: true
+        };
+        var gif = new GIF({
+            workers: 2,
+            quality: 5,
+            delay: 0,
+        });
+
+
+        window.onload = function() {
+            var img = document.getElementById("srcimg");
+            var fileinput = document.getElementById("fileinput");
+            fileinput.onchange = function(evt) {
+                var files = evt.target.files; // FileList object
+                var file = files[0];
+                if (file.type.match('image.*')) {
+                    var reader = new FileReader();
+                    // Read in the image file as a data URL.
+                    reader.readAsDataURL(file);
+                    reader.onload = function(evt) {
+                        if (evt.target.readyState == FileReader.DONE) {
+                            img.src = evt.target.result;
+                            document.getElementById("scanbutton").disabled = false;
+                        }
+                    }
+
+                } else {
+                    alert("not an image");
+                    document.getElementById("scanbutton").disabled = false;
+                }
+            };
+        }
+
+        function downloadString(text, fileType, fileName) {
+            var blob = new Blob([text], {
+                type: fileType
+            });
+
+            var a = document.createElement('a');
+            a.download = fileName;
+            a.href = URL.createObjectURL(blob);
+            a.dataset.downloadurl = [fileType, a.download, a.href].join(':');
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function() {
+                URL.revokeObjectURL(a.href);
+            }, 1500);
+        }
+
+
+
+
+        function Trc() {
+            var canvas = document.createElement("canvas");
+            canvas.width = document.getElementById("srcimg").width;
+            canvas.height = document.getElementById("srcimg").height;
+            ctx = canvas.getContext('2d');
+            ctx.drawImage(document.getElementById("srcimg"), 0, 0);
+            ImageTracer.imageToSVG(
+                canvas.toDataURL(),
+                function(svgstr) {
+                    ImageTracer.appendSVGString(svgstr, 'svgcontainer');
+
+                    document.getElementById("svgcontainer").firstElementChild.id = "my-svg";
+                    document.getElementById("svgcontainer").firstElementChild.setAttribute("fill-opacity", "0.0");
+                    document.getElementById("svgcontainer").firstElementChild.setAttribute("stroke-linejoin", "round")
+                    document.getElementById("svgcontainer").firstElementChild.setAttribute("stroke-linecap", "round")
+                    document.getElementById("renderbutton").disabled = false;
+                    /*document.getElementById("svgcontainer").firstElementChild.setAttribute("onclick", "start()");*/
+                    /*downloadString(document.getElementById("svgcontainer").innerHTML,"text/svg","outputSvg.svg);*/
+
+                },
+                options
+            );
+        }
+
+        function myCallback() {
+            console.log("done");
+            clearInterval(captint);
+            gif.on('finished', function(blob) {
+                window.open(URL.createObjectURL(blob));
+            });
+            gif.render();
+        }
+
+        function capt(duration) {
+            /*setTimeout(function() {
+           
+            }, duration)*/
+            captint = setInterval(function() {
+                html2canvas(document.querySelector("#my-svg")).then(canvas => {
+                    //console.log(canvas.toDataURL());
+
+                    gif.addFrame(canvas, {
+                        delay: 1
+                    });
+                });
+            }, duration / 24);
+
+
+
+        }
+
+        function start() {
+            var animtype = document.getElementById("typeselect").value;
+            var animduration = document.getElementById("duration").value;
+
+            var myVivus = new Vivus('my-svg', {
+                type: animtype,
+                duration: animduration
+            }, myCallback);
+            myVivus.play(1);
+            capt(animduration);
+        }
+
+    </script>
+</body>
+
+</html>
