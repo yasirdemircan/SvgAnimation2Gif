@@ -9,7 +9,7 @@
     <script src="html2canvas.min.js"></script>
 </head>
 
-<body>
+<body style="background-color:chocolate">
     <img crossorigin="anonymous" onclick="Trc()" id="srcimg">
     <fieldset>
         <legend>Options:</legend>
@@ -26,15 +26,15 @@
     <script>
         var captint;
         var options = {
-            ltres: 10,
-            qtres: 10,
-            pathomit: 5,
+            ltres: 5,
+            qtres: 4,
+            pathomit: 0,
             strokewidth: 0.5,
-            rightangleenhance: true
+            rightangleenhance: false
         };
         var gif = new GIF({
             workers: 2,
-            quality: 5,
+            quality: 10,
             delay: 0,
         });
 
@@ -112,6 +112,7 @@
             console.log("done");
             clearInterval(captint);
             gif.on('finished', function(blob) {
+                console.log(URL.createObjectURL(blob));
                 window.open(URL.createObjectURL(blob));
             });
             gif.render();
@@ -123,7 +124,7 @@
             }, duration)*/
             captint = setInterval(function() {
                 html2canvas(document.querySelector("#my-svg")).then(canvas => {
-                    //console.log(canvas.toDataURL());
+                    console.log(canvas.toDataURL("image/gif"));
 
                     gif.addFrame(canvas, {
                         delay: 1
